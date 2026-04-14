@@ -1,0 +1,19 @@
+.idea/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+TextBooks/
+animation_outputs/
+Предыдущий чат.txt
+
+RESEARCH_REQUIREMENTS_AND_TODO.md
+PROJECT_PROGRESS_LOG.md
+NOTEBOOK_FORMULA_RULES.md
+
+prices.csv
+log_prices.csv
+log_returns.csv
+detrended_log_prices.csv
+detrended_log_returns.csv
+detrended_returns_df_200.csv
