@@ -1,0 +1,232 @@
+Ntc\documentclass[11pt]{article}
+
+\usepackage[margin=0.9in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+\usepackage{titlesec}
+
+\linespread{0.96}
+
+\setlength{\parskip}{3pt}
+\setlength{\parindent}{0pt}
+
+\setlist[itemize]{itemsep=1pt,topsep=1pt}
+\setlist[enumerate]{itemsep=1pt,topsep=1pt}
+
+\titlespacing{\section}{0pt}{6pt}{3pt}
+
+\begin{document}
+	
+	\begin{center}
+		
+		{\Large\bfseries Mini-Research Proposal}
+		
+		\vspace{0.2cm}
+		
+		{\large\bfseries Empirical Diagnostics of Diffusion and Jump Dynamics}
+		
+		{\large\bfseries in Equity Markets using Stochastic Differential Equations}
+		
+		\vspace{0.4cm}
+		
+		Course: \textbf{Stochastic Differential Equations (MATH565C)}
+		
+		% \vspace{0.2cm}
+		
+		Prepared by: \textbf{Dmitri Bolt}
+		
+		Instructor: \textbf{Prof. Ibrahim Fatkullin (University of Arizona)}
+		
+		Date: March 5, 2026
+		
+	\end{center}
+	
+	\vspace{0.3cm}
+	
+	\section*{Part I: Overview}
+	
+	This mini-research uses real equity price data (via the \texttt{yfinance} Python library) to examine how well simple continuous-time stochastic differential equation (SDE) models describe empirical log-returns.
+	
+	The baseline hypothesis is that, after the log transformation, a large portion of the random variation can be approximated by an Itô diffusion driven by a Wiener process \(W_t\), while rare large moves may require an additional jump component.
+	
+	The project develops hands-on familiarity with core tools from Øksendal’s textbook (Brownian motion / Wiener process, Itô integrals, Itô’s formula, quadratic variation) by translating them into empirical diagnostics.
+	
+	\textbf{Key questions}
+	
+	\begin{enumerate}
+		\item Are log-return increments approximately Brownian at a given time scale (variance scaling with \(\Delta t\), weak serial dependence, approximate Gaussianity)?
+		\item Do quadratic-variation diagnostics indicate mostly continuous diffusion behavior, or do a few large increments dominate (jump-like behavior)?
+		\item Which simple SDE baseline best captures a market factor and a representative subset of stocks: geometric Brownian motion, Ornstein–Uhlenbeck dynamics on a de-trended factor, or diffusion with sparse jumps?
+	\end{enumerate}
+	
+	\textbf{Approach}
+	
+	Download prices → compute log-returns → optionally extract a market factor (PCA) → run diffusion and jump diagnostics → fit simple SDE models → compare results.
+	
+	\textbf{Deliverables}
+	
+	A reproducible Python notebook, a short report (5–10 pages), and an explicit mapping between empirical steps and the corresponding concepts in Øksendal.
+	
+	\textbf{Rationale}
+	
+	The scope is intentionally small but exercises the mathematical core of stochastic differential equations while connecting empirical data analysis with diffusion theory.
+	
+	Each fitted diffusion model defines a generator
+	\[
+	L f(x)=a(x)f'(x)+\tfrac12 b(x)^2 f''(x),
+	\]
+	which determines the associated Fokker–Planck equation governing the evolution of the probability density.
+	
+	\[
+	\text{SDE dynamics}
+	\;\longrightarrow\;
+	\text{diffusion generator}
+	\;\longrightarrow\;
+	\text{Fokker--Planck PDE}
+	\]
+	
+	This viewpoint highlights the link between stochastic diffusion models and their PDE descriptions.
+	
+	\newpage
+	
+	\section*{Part II: Detailed Plan}
+	
+	\textbf{1. Study setup and data scope}
+	
+	Data consist of daily adjusted close prices obtained from Yahoo Finance using the \texttt{yfinance} Python library, covering approximately 20–200 liquid US equities together with an index proxy (e.g. SPY), which keeps the analysis computationally manageable while still representing market dynamics.
+	
+	Variables used in the study:
+	
+	\[
+	S_t,\qquad X_t=\ln S_t,\qquad \Delta X_k=X_{t_{k+1}}-X_{t_k}.
+	\]
+	
+	\textbf{2. Research hypotheses}
+	
+	Diffusion hypothesis
+	
+	\[
+	dX_t=a\,dt+b\,dW_t
+	\]
+	
+	implying
+	
+	\[
+	\mathbb{E}[\Delta X]\approx a\Delta t,
+	\qquad
+	\mathrm{Var}(\Delta X)\approx b^2\Delta t.
+	\]
+	
+	Jump hypothesis
+	
+	Heavy tails or large outliers may correspond to a sparse jump component visible through large contributions to realized quadratic variation.
+	
+	Mean-reversion hypothesis
+	
+	A de-trended market factor may follow Ornstein–Uhlenbeck dynamics
+	
+	\[
+	dX_t=\kappa(\theta-X_t)dt+\sigma dW_t.
+	\]
+	
+	\textbf{3. Mathematical toolkit from Øksendal}
+	
+	Primary reference:
+	
+	Øksendal, \emph{Stochastic Differential Equations: An Introduction with Applications}, 5th ed.
+	
+	Concepts used in the project:
+	
+	\begin{itemize}
+		\item Wiener process (Brownian motion) — Section 2.2
+		\item Itô integral — Section 3.1
+		\item Itô processes and Itô’s formula — Chapter 4
+		\item Quadratic variation \((X,X)_t\) — Chapter 4
+		\item Geometric Brownian motion and log transform — Chapter 5
+		\item Ornstein–Uhlenbeck process — Chapter 5 exercises
+		\item Optional Stratonovich vs Itô conversion — Section 3.3
+	\end{itemize}
+	
+	\textbf{4. Empirical methodology}
+	
+	Preprocessing
+	
+	Compute log-returns, treat missing values, and generate basic descriptive statistics.
+	
+	Diffusion diagnostics
+	
+	\begin{itemize}
+		\item variance scaling across time aggregation
+		\item serial dependence tests
+		\item Gaussianity diagnostics
+	\end{itemize}
+	
+	Quadratic variation
+	
+	\[
+	QV(T)=\sum_k (\Delta X_k)^2
+	\]
+	
+	used to identify whether a few extreme increments dominate the realized variance.
+	
+	Model fitting
+	
+	Estimate parameters for GBM (prices) and OU dynamics (de-trended factor).
+	
+	Optional jump extension
+	
+	Add a sparse jump component and compare against diffusion-only baselines.
+	
+	\textbf{5. Skills developed}
+	
+	\begin{enumerate}
+		\item Understanding Wiener increments as drivers of SDE noise
+		\item Practical use of Itô integrals and Itô’s formula
+		\item Quadratic variation as a bridge between SDE theory and realized variance
+		\item Translating continuous-time models to discrete-time data
+		\item Reproducible computational workflow for SDE modeling
+	\end{enumerate}
+	
+	\textbf{6. Proposed timeline}
+	
+	March 5 – March 15
+	
+	Dataset construction, preprocessing pipeline, initial diagnostics.
+	
+	March 16 – March 25
+	
+	Diffusion diagnostics (variance scaling, serial dependence, Gaussianity).
+	
+	March 26 – April 5
+	
+	Quadratic variation analysis and identification of large increments.
+	
+	April 6 – April 15
+	
+	Calibration of GBM and OU models and simulation checks.
+	
+	April 16 – April 25
+	
+	Optional jump extension and model comparison.
+	
+	April 26 – May 3
+	
+	Final report preparation and reproducible notebook cleanup.
+	
+	May 4
+	
+	Project presentation.
+	
+	\vspace{0.3cm}
+	
+	\begin{thebibliography}{1}
+		
+		\bibitem{oksendal}
+		B. Øksendal,
+		\emph{Stochastic Differential Equations: An Introduction with Applications},
+		5th ed., Springer, 2003.
+		
+	\end{thebibliography}
+	
+\end{document}
