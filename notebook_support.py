@@ -70,8 +70,8 @@ def plot_raw_vs_detrended(
 
     for row_index, symbol in enumerate(symbols):
         axes[row_index, 0].plot(log_prices_df.index, log_prices_df[symbol], color="steelblue", linewidth=1.8)
-        axes[row_index, 0].set_title(f"{symbol}: raw log-prices")
-        axes[row_index, 0].set_ylabel("log-price")
+        axes[row_index, 0].set_title(f"{symbol}: raw log-prices $X_{{t_i}}^k$")
+        axes[row_index, 0].set_ylabel(r"raw log-price $X_{t_i}^k$")
 
         axes[row_index, 1].plot(
             detrended_log_prices_df.index,
@@ -80,11 +80,11 @@ def plot_raw_vs_detrended(
             linewidth=1.8,
         )
         axes[row_index, 1].axhline(0.0, color="black", linestyle="--", linewidth=1.0, alpha=0.7)
-        axes[row_index, 1].set_title(f"{symbol}: detrended log-prices")
-        axes[row_index, 1].set_ylabel("detrended log-price")
+        axes[row_index, 1].set_title(f"{symbol}: detrended log-prices $\\widetilde{{X}}_{{t_i}}^k$")
+        axes[row_index, 1].set_ylabel(r"detrended log-price $\widetilde{X}_{t_i}^k$")
 
-    axes[-1, 0].set_xlabel("date")
-    axes[-1, 1].set_xlabel("date")
+    axes[-1, 0].set_xlabel(r"observation date $t_i$")
+    axes[-1, 1].set_xlabel(r"observation date $t_i$")
     plt.tight_layout()
     plt.show()
 
@@ -107,8 +107,8 @@ def plot_return_distributions(
     for row_index, symbol in enumerate(symbols):
         sns.histplot(log_returns_df[symbol], kde=True, ax=axes[row_index, 0], color="steelblue")
         axes[row_index, 0].axvline(log_returns_df[symbol].mean(), color="black", linestyle="--", linewidth=1.0)
-        axes[row_index, 0].set_title(f"{symbol}: raw log-returns")
-        axes[row_index, 0].set_xlabel("return")
+        axes[row_index, 0].set_title(f"{symbol}: raw log-returns $\\Delta X_{{t_i}}^k$")
+        axes[row_index, 0].set_xlabel(r"raw log-return $\Delta X_{t_i}^k$")
 
         sns.histplot(detrended_returns_df[symbol], kde=True, ax=axes[row_index, 1], color="darkorange")
         axes[row_index, 1].axvline(
@@ -117,8 +117,8 @@ def plot_return_distributions(
             linestyle="--",
             linewidth=1.0,
         )
-        axes[row_index, 1].set_title(f"{symbol}: detrended log-returns")
-        axes[row_index, 1].set_xlabel("return")
+        axes[row_index, 1].set_title(f"{symbol}: detrended log-returns $\\Delta \\widetilde{{X}}_{{t_i}}^k$")
+        axes[row_index, 1].set_xlabel(r"detrended log-return $\Delta \widetilde{X}_{t_i}^k$")
 
     plt.tight_layout()
     plt.show()
@@ -146,15 +146,15 @@ def plot_rolling_diagnostics(
 
         axes[row_index, 0].plot(rolling_mean.index, rolling_mean, color="steelblue", linewidth=1.6)
         axes[row_index, 0].axhline(0.0, color="black", linestyle="--", linewidth=1.0, alpha=0.7)
-        axes[row_index, 0].set_title(f"{symbol}: {rolling_window}-day rolling mean of raw log-returns")
-        axes[row_index, 0].set_ylabel("rolling mean")
+        axes[row_index, 0].set_title(f"{symbol}: {rolling_window}-day rolling mean of $\\Delta X_{{t_i}}^k$")
+        axes[row_index, 0].set_ylabel(rf"{rolling_window}-day mean of $\Delta X_{{t_i}}^k$")
 
         axes[row_index, 1].plot(rolling_volatility.index, rolling_volatility, color="firebrick", linewidth=1.6)
-        axes[row_index, 1].set_title(f"{symbol}: {rolling_window}-day rolling volatility of raw log-returns")
-        axes[row_index, 1].set_ylabel("rolling std")
+        axes[row_index, 1].set_title(f"{symbol}: {rolling_window}-day rolling std of $\\Delta X_{{t_i}}^k$")
+        axes[row_index, 1].set_ylabel(rf"{rolling_window}-day std of $\Delta X_{{t_i}}^k$")
 
-    axes[-1, 0].set_xlabel("date")
-    axes[-1, 1].set_xlabel("date")
+    axes[-1, 0].set_xlabel(r"observation date $t_i$")
+    axes[-1, 1].set_xlabel(r"observation date $t_i$")
     plt.tight_layout()
     plt.show()
 
@@ -180,9 +180,9 @@ def plot_autocorrelation_table(autocorrelation_df: DataFrame) -> None:
     """Visualize lag autocorrelation decay."""
     ax = autocorrelation_df.plot(marker="o", linewidth=1.8, figsize=(12, 6))
     ax.axhline(0.0, color="black", linestyle="--", linewidth=1.0, alpha=0.7)
-    ax.set_title("Lag autocorrelation of detrended log-prices")
-    ax.set_xlabel("lag")
-    ax.set_ylabel("autocorrelation")
+    ax.set_title(r"Lag autocorrelation of detrended levels $\widetilde{X}_{t_i}^k$")
+    ax.set_xlabel(r"lag $\ell$")
+    ax.set_ylabel(r"autocorrelation of $\widetilde{X}_{t_i}^k$")
     plt.tight_layout()
     plt.show()
 
@@ -213,21 +213,23 @@ def plot_detrended_levels_with_rolling_mean(
             color="darkorange",
             linewidth=1.2,
             alpha=0.8,
-            label="detrended level",
+            label=r"detrended level $\widetilde{X}_{t_i}^k$",
         )
         axes[row_index].plot(
             rolling_level_mean.index,
             rolling_level_mean,
             color="navy",
             linewidth=2.0,
-            label=f"{window}-day rolling mean",
+            label=rf"{window}-day rolling mean of $\widetilde{{X}}_{{t_i}}^k$",
         )
         axes[row_index].axhline(0.0, color="black", linestyle="--", linewidth=1.0, alpha=0.7)
-        axes[row_index].set_title(f"{symbol}: detrended level and {window}-day rolling mean")
-        axes[row_index].set_ylabel("detrended log-price")
+        axes[row_index].set_title(
+            f"{symbol}: detrended level $\\widetilde{{X}}_{{t_i}}^k$ and {window}-day rolling mean"
+        )
+        axes[row_index].set_ylabel(r"detrended log-price $\widetilde{X}_{t_i}^k$")
         axes[row_index].legend(loc="upper right")
 
-    axes[-1].set_xlabel("date")
+    axes[-1].set_xlabel(r"observation date $t_i$")
     plt.tight_layout()
     plt.show()
 
@@ -291,22 +293,22 @@ def plot_simulated_model_paths(
 
     for path in brownian_paths:
         axes[0].plot(brownian_time, path, linewidth=1.2, alpha=0.85)
-    axes[0].set_title("Simulated Brownian motion paths")
-    axes[0].set_xlabel("time")
-    axes[0].set_ylabel("level")
+    axes[0].set_title(r"Simulated Brownian motion paths $B_t$")
+    axes[0].set_xlabel(r"time $t$")
+    axes[0].set_ylabel(r"Brownian level $B_t$")
 
     for path in gbm_paths:
         axes[1].plot(gbm_time, path, linewidth=1.2, alpha=0.85)
-    axes[1].set_title("Simulated geometric Brownian motion paths")
-    axes[1].set_xlabel("time")
-    axes[1].set_ylabel("level")
+    axes[1].set_title(r"Simulated geometric Brownian motion paths $N_t$")
+    axes[1].set_xlabel(r"time $t$")
+    axes[1].set_ylabel(r"GBM level $N_t$")
 
     for path in ou_paths:
         axes[2].plot(ou_time, path, linewidth=1.2, alpha=0.85)
     axes[2].axhline(ou_mean_level, color="black", linestyle="--", linewidth=1.0, alpha=0.7)
-    axes[2].set_title(f"Simulated OU paths calibrated to {ou_reference_symbol}")
-    axes[2].set_xlabel("step")
-    axes[2].set_ylabel("level")
+    axes[2].set_title(f"Simulated OU paths $X_t$ calibrated to {ou_reference_symbol}")
+    axes[2].set_xlabel(r"time $t$")
+    axes[2].set_ylabel(r"OU level $X_t$")
 
     plt.tight_layout()
     plt.show()
@@ -324,7 +326,7 @@ def plot_empirical_vs_simulated_ou(
         empirical_series,
         color="darkorange",
         linewidth=1.6,
-        label=f"Empirical detrended {symbol}",
+        label=rf"Empirical detrended {symbol}: $\widetilde{{X}}_{{t_i}}^k$",
     )
     ax.plot(
         simulated_series.index,
@@ -332,7 +334,7 @@ def plot_empirical_vs_simulated_ou(
         color="navy",
         linewidth=1.4,
         alpha=0.9,
-        label="Simulated OU benchmark",
+        label=r"Simulated OU benchmark $X_t$",
     )
     ax.axhline(
         float(empirical_series.mean()),
@@ -340,11 +342,11 @@ def plot_empirical_vs_simulated_ou(
         linestyle="--",
         linewidth=1.0,
         alpha=0.7,
-        label="Empirical mean level",
+        label=r"empirical mean level of $\widetilde{X}_{t_i}^k$",
     )
-    ax.set_title(f"Empirical detrended path vs simulated OU benchmark: {symbol}")
-    ax.set_xlabel("date")
-    ax.set_ylabel("level")
+    ax.set_title(f"Empirical $\\widetilde{{X}}_{{t_i}}^k$ vs simulated OU benchmark $X_t$: {symbol}")
+    ax.set_xlabel(r"observation date $t_i$")
+    ax.set_ylabel(r"level $\widetilde{X}_{t_i}^k$ / OU benchmark $X_t$")
     ax.legend(loc="upper right")
     plt.tight_layout()
     plt.show()
@@ -527,27 +529,30 @@ def ensure_animation_assets(
         save_path_animation(
             time_grid=brownian_time,
             paths=brownian_paths[:5],
-            title="Brownian motion animation",
+            title=r"Brownian motion animation $B_t$",
             output_path=output_paths["brownian"],
-            ylabel="level",
-            xlabel="time",
+            ylabel=r"Brownian level $B_t$",
+            xlabel=r"time $t$",
             path_label_prefix="Brownian path",
-            caption_text="Each colored line denotes one independently simulated Brownian path starting at 0.",
+            caption_text=(
+                r"Each colored line denotes one independently simulated Brownian path $B_t$ "
+                r"starting at $B_0 = 0$."
+            ),
         )
         save_path_animation(
             time_grid=ou_time,
             paths=ou_paths[:5],
-            title=f"OU animation calibrated to {ou_reference_symbol}",
+            title=rf"OU animation $X_t$ calibrated to {ou_reference_symbol}",
             output_path=output_paths["ou"],
-            ylabel="level",
-            xlabel="step",
+            ylabel=r"OU level $X_t$",
+            xlabel=r"time $t$",
             path_label_prefix="OU path",
             caption_text=(
-                "Each colored line denotes one independently simulated OU path; "
-                "the dashed line marks the estimated long-run mean."
+                r"Each colored line denotes one independently simulated OU path $X_t$; "
+                r"the dashed line marks the estimated long-run mean $\hat{m}$."
             ),
             reference_level=ou_mean_level,
-            reference_label="long-run mean",
+            reference_label=r"estimated long-run mean $\hat{m}$",
         )
 
     return output_paths
@@ -556,8 +561,8 @@ def ensure_animation_assets(
 def display_available_animations(animation_paths: dict[str, Path]) -> None:
     """Display GIF files that already exist on disk."""
     descriptions = {
-        "brownian": "Brownian GIF: each colored line is one independently simulated Brownian path.",
-        "ou": "OU GIF: each colored line is one independently simulated OU path; the dashed line is the long-run level.",
+        "brownian": r"Brownian GIF: each colored line is one independently simulated Brownian path $B_t$.",
+        "ou": r"OU GIF: each colored line is one independently simulated OU path $X_t$; the dashed line is the estimated long-run mean $\hat{m}$.",
     }
     for label, path in animation_paths.items():
         print(f"{label}: {path}")
