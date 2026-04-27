@@ -21,6 +21,13 @@ def configure_notebook_style() -> None:
     plt.rcParams["legend.fontsize"] = 10
 
 
+def rotate_empirical_time_labels(axes: np.ndarray | list[plt.Axes] | plt.Axes) -> None:
+    """Rotate empirical date labels so notebook plots remain readable."""
+    axes_array = np.atleast_1d(axes)
+    for ax in axes_array.flat:
+        plt.setp(ax.get_xticklabels(), rotation=90, ha="center")
+
+
 def build_representative_diagnostics(
     log_prices_df: DataFrame,
     detrended_log_prices_df: DataFrame,
@@ -85,6 +92,7 @@ def plot_raw_vs_detrended(
 
     axes[-1, 0].set_xlabel(r"observation date $t_i$")
     axes[-1, 1].set_xlabel(r"observation date $t_i$")
+    rotate_empirical_time_labels(axes)
     plt.tight_layout()
     plt.show()
 
@@ -155,6 +163,7 @@ def plot_rolling_diagnostics(
 
     axes[-1, 0].set_xlabel(r"observation date $t_i$")
     axes[-1, 1].set_xlabel(r"observation date $t_i$")
+    rotate_empirical_time_labels(axes)
     plt.tight_layout()
     plt.show()
 
@@ -230,6 +239,7 @@ def plot_detrended_levels_with_rolling_mean(
         axes[row_index].legend(loc="upper right")
 
     axes[-1].set_xlabel(r"observation date $t_i$")
+    rotate_empirical_time_labels(axes)
     plt.tight_layout()
     plt.show()
 
@@ -348,6 +358,7 @@ def plot_empirical_vs_simulated_ou(
     ax.set_xlabel(r"observation date $t_i$")
     ax.set_ylabel(r"level $\widetilde{X}_{t_i}^k$ / OU benchmark $X_t$")
     ax.legend(loc="upper right")
+    rotate_empirical_time_labels(ax)
     plt.tight_layout()
     plt.show()
 
