@@ -59,6 +59,134 @@ def build_representative_diagnostics(
     )
 
 
+def build_sde_quantitative_summary(
+    log_prices_df: DataFrame,
+    detrended_log_prices_df: DataFrame,
+    log_returns_df: DataFrame,
+    ou_parameter_df: DataFrame,
+    symbols: Sequence[str],
+    rolling_window: int = 21,
+) -> DataFrame:
+    """Summarize numeric evidence for the simple SDE benchmark story."""
+    summary_rows: list[dict[str, float | str]] = []
+
+    for symbol in symbols:
+        raw_series = log_prices_df[symbol].dropna()
+        detrended_series = detrended_log_prices_df[symbol].dropna()
+        time_index = np.arange(len(raw_series))
+
+        x_prev = detrended_series.shift(1).dropna()
+        x_curr = detrended_series.loc[x_prev.index]
+        design_matrix = np.column_stack([np.ones(len(x_prev)), x_prev.values])
+        alpha_hat, phi_hat = np.linalg.lstsq(design_matrix, x_curr.values, rcond=None)[0]
+        predicted = alpha_hat + phi_hat * x_prev.values
+        residuals = x_curr.values - predicted
+        total_variation = np.sum((x_curr.values - x_curr.values.mean()) ** 2)
+        ou_ar1_r2 = 1 - np.sum(residuals**2) / total_variation if total_variation > 0 else np.nan
+
+        rolling_volatility = log_returns_df[symbol].rolling(rolling_window).std().dropna()
+        ou_row = ou_parameter_df.loc[ou_parameter_df["symbol"] == symbol]
+        half_life_days = float(ou_row["half_life_days"].iloc[0]) if not ou_row.empty else np.nan
+
+        summary_rows.append(
+            {
+                "symbol": symbol,
+                "raw_trend_r2": float(np.corrcoef(time_index, raw_series.values)[0, 1] ** 2),
+                "ou_ar1_r2": float(ou_ar1_r2),
+                "half_life_days": half_life_days,
+                "rolling_vol_min": float(rolling_volatility.min()),
+                "rolling_vol_max": float(rolling_volatility.max()),
+                "rolling_vol_ratio": float(rolling_volatility.max() / rolling_volatility.min()),
+            }
+        )
+
+    return pd.DataFrame(summary_rows)
+
+
+def build_ou_validation_diagnostics(
+    detrended_log_prices_df: DataFrame,
+    ou_parameter_df: DataFrame,
+    symbols: Sequence[str],
+    max_acf_lag: int = 20,
+    transition_horizon: int = 5,
+    n_transition_bins: int = 5,
+) -> DataFrame:
+    """Validate OU-style AR(1) parameters against diagnostics not used directly for fitting."""
+    validation_rows: list[dict[str, float | int | str]] = []
+
+    for symbol in symbols:
+        detrended_series = detrended_log_prices_df[symbol].dropna()
+        ou_row = ou_parameter_df.loc[ou_parameter_df["symbol"] == symbol]
+        if ou_row.empty:
+            continue
+
+        phi_hat = float(ou_row["phi_hat"].iloc[0])
+        long_run_mean_hat = float(ou_row["long_run_mean_hat"].iloc[0])
+        sigma_hat = float(ou_row["sigma_hat"].iloc[0])
+
+        validation_lags = np.arange(2, max_acf_lag + 1)
+        empirical_acf = np.array([detrended_series.autocorr(lag=int(lag)) for lag in validation_lags])
+        predicted_acf = phi_hat**validation_lags
+        acf_errors = empirical_acf - predicted_acf
+
+        transition_rmse = np.nan
+        transition_z_mean = np.nan
+        transition_z_std = np.nan
+
+        if (
+            len(detrended_series) > transition_horizon
+            and np.isfinite(phi_hat)
+            and np.isfinite(long_run_mean_hat)
+            and np.isfinite(sigma_hat)
+            and abs(1 - phi_hat**2) > 1e-12
+        ):
+            x_start = detrended_series.iloc[:-transition_horizon].to_numpy()
+            x_future = detrended_series.iloc[transition_horizon:].to_numpy()
+            predicted_mean = long_run_mean_hat + phi_hat**transition_horizon * (
+                x_start - long_run_mean_hat
+            )
+            predicted_std = sigma_hat * np.sqrt(
+                (1 - phi_hat ** (2 * transition_horizon)) / (1 - phi_hat**2)
+            )
+
+            transition_frame = pd.DataFrame(
+                {
+                    "x_start": x_start,
+                    "x_future": x_future,
+                    "predicted_mean": predicted_mean,
+                }
+            )
+            transition_frame["bin"] = pd.qcut(
+                transition_frame["x_start"],
+                q=n_transition_bins,
+                duplicates="drop",
+            )
+            binned_means = transition_frame.groupby("bin", observed=True)[
+                ["x_future", "predicted_mean"]
+            ].mean()
+            transition_errors = binned_means["x_future"] - binned_means["predicted_mean"]
+            transition_rmse = float(np.sqrt(np.mean(transition_errors**2)))
+
+            standardized_errors = (x_future - predicted_mean) / predicted_std
+            transition_z_mean = float(np.mean(standardized_errors))
+            transition_z_std = float(np.std(standardized_errors, ddof=1))
+
+        validation_rows.append(
+            {
+                "symbol": symbol,
+                "validation_max_acf_lag": int(max_acf_lag),
+                "transition_horizon_days": int(transition_horizon),
+                "acf_decay_rmse_lags_2_20": float(np.sqrt(np.nanmean(acf_errors**2))),
+                "acf_decay_mae_lags_2_20": float(np.nanmean(np.abs(acf_errors))),
+                "transition_mean_rmse_h5": transition_rmse,
+                "transition_z_mean_h5": transition_z_mean,
+                "transition_z_std_h5": transition_z_std,
+            }
+        )
+
+    return pd.DataFrame(validation_rows)
+
+
 def plot_raw_vs_detrended(
     log_prices_df: DataFrame,
     detrended_log_prices_df: DataFrame,

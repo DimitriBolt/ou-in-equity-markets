@@ -1,0 +1,511 @@
+\documentclass[aspectratio=169,10pt]{beamer}
+% aspectratio=169 → canvas 160×90 mm, true 16:9
+
+% ---- Theme & Colors ----
+\usetheme{Madrid}
+\usefonttheme{serif}
+\definecolor{navyblue}{RGB}{0,40,85}
+\definecolor{midblue}{RGB}{0,82,155}
+\definecolor{lightgray}{RGB}{245,245,245}
+\setbeamercolor{structure}{fg=navyblue}
+\setbeamercolor{frametitle}{fg=white,bg=navyblue}
+\setbeamercolor{title}{fg=white,bg=navyblue}
+\setbeamercolor{subtitle}{fg=white,bg=navyblue}
+\setbeamercolor{author in head/foot}{fg=white,bg=navyblue}
+\setbeamercolor{title in head/foot}{fg=white,bg=midblue}
+\setbeamercolor{date in head/foot}{fg=white,bg=navyblue}
+\setbeamercolor{block title}{fg=white,bg=midblue}
+\setbeamercolor{block body}{fg=black,bg=lightgray}
+\setbeamercolor{alerted text}{fg=midblue}
+
+\setbeamersize{text margin left=5mm, text margin right=5mm}
+% Remove Madrid's navigation headline, keep frametitle + footer
+\useoutertheme{default}
+\setbeamertemplate{footline}{%
+  \leavevmode%
+  \hbox{%
+    \begin{beamercolorbox}[wd=.333\paperwidth,ht=2.25ex,dp=1ex,center]{author in head/foot}%
+      \usebeamerfont{author in head/foot}\insertshortauthor
+    \end{beamercolorbox}%
+    \begin{beamercolorbox}[wd=.334\paperwidth,ht=2.25ex,dp=1ex,center]{title in head/foot}%
+      \usebeamerfont{title in head/foot}\insertshorttitle
+    \end{beamercolorbox}%
+    \begin{beamercolorbox}[wd=.333\paperwidth,ht=2.25ex,dp=1ex,right]{date in head/foot}%
+      \usebeamerfont{date in head/foot}\insertshortdate\hspace*{2em}%
+      \insertframenumber{}/\inserttotalframenumber\hspace*{2ex}
+    \end{beamercolorbox}%
+  }%
+  \vskip0pt%
+}
+
+% ---- Packages ----
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{colortbl}
+\usepackage{microtype}
+\graphicspath{{./figures/}}
+
+% ---- Metadata ----
+\title[SDEs in Equity Markets]{%
+  Can Simple SDEs Describe Equity-Market Time Series?}
+\subtitle{A Mini-Research with Diffusion and Ornstein--Uhlenbeck Benchmarks}
+\author{Dmitri Bolt}
+\date{May 2026}
+\institute{Educational Mini-Research}
+
+% ================================================================
+\begin{document}
+% ================================================================
+
+\begin{frame}
+  \titlepage
+\end{frame}
+
+% ================================================================
+\begin{frame}{Research Question and Financial Setup}
+% ================================================================
+\begin{block}{Central question}
+Can stock-market time series be described by simple textbook SDEs?
+\end{block}
+
+\smallskip
+\textbf{Financial setup} \textit{(for the SDE-oriented reader):}
+\begin{itemize}
+  \item A \textbf{stock} is a tradeable financial asset (share of a listed company);
+        its \textbf{closing price} $P_t^k > 0$ is observed once per \textbf{trading day}
+        ($\approx 252$ days/year).
+  \item Dataset: 94 large-cap US stocks, NASDAQ, Jan 2023 -- Apr 2026.
+\end{itemize}
+
+\medskip
+\textbf{Key insight:} the same price series yields five structurally different objects:
+\[
+P_{t}^{k}
+\;\to\; X_{t}^{k} = \ln P_{t}^{k}
+\;\to\; \Delta X_{t_i}^{k}
+\;\to\; \widetilde{X}_{t}^{k}
+\;\to\; \Delta\widetilde{X}_{t_i}^{k}
+\]
+A benchmark SDE may be useful for one transformation and inadequate for another.
+
+\end{frame}
+
+% ================================================================
+\begin{frame}{Three Textbook Benchmarks ({\O}ksendal)}
+% ================================================================
+
+\small
+Following \textbf{{\O}ksendal, \textit{Stochastic Differential Equations}, 6th ed.}
+
+\medskip
+\begin{enumerate}
+  \setlength{\itemsep}{5pt}
+
+  \item \textbf{It\^{o} diffusion} \hfill \textit{Def.\ 4.1.1, eq.\ (4.1.6)}
+        \[ dX_t = u\,dt + v\,dB_t \]
+        \vspace{-3pt}
+        Benchmark for daily log-returns $\Delta X_{t_i}^k$.
+
+  \item \textbf{Geometric Brownian Motion} \hfill \textit{Ch.\ 5.1, eq.\ (5.1.5)}
+        \[ N_t = N_0\exp\!\bigl((r-\tfrac{1}{2}\alpha^2)t + \alpha B_t\bigr) \]
+        \vspace{-3pt}
+        $N_t$ = price level. Benchmark for raw log-prices $X_t^k$.
+
+  \item \textbf{Ornstein--Uhlenbeck} \quad\textit{(Exercise 5.7)}
+        \[ dX_t = \theta(m - X_t)\,dt + \sigma\,dB_t \]
+        \vspace{-3pt}
+        $\theta>0$: mean-reversion speed, $m$: equilibrium.
+        Benchmark for detrended log-prices $\widetilde{X}_t^k$.
+\end{enumerate}
+
+\end{frame}
+
+% ================================================================
+\begin{frame}{Data and Pipeline}
+% ================================================================
+
+\begin{columns}[T]
+\begin{column}{0.45\textwidth}
+\textbf{Dataset}
+\begin{itemize}\setlength{\itemsep}{1pt}
+  \item 94 large-cap US stocks, daily prices
+  \item NASDAQ, Jan 2023 -- Apr 2026 ($\approx\!820$ obs.)
+  \item 3 representative stocks:
+        \textbf{NVDA}, \textbf{META}, \textbf{GOOG}
+\end{itemize}
+
+\smallskip
+\textbf{Detrending:} OLS linear fit to $X_t^k$, keep residual:
+\vspace{-4pt}\[ \widetilde{X}_{t}^k = X_{t}^k - (\hat a + \hat b\, t) \]\vspace{-4pt}
+\small Different transformations $\to$ different benchmarks.
+\end{column}
+\begin{column}{0.50\textwidth}
+\textbf{Five-stage pipeline}
+
+\smallskip
+\renewcommand{\arraystretch}{1.25}
+\begin{tabular}{@{}ll@{}}
+$P_{t}^{k}$ & prices \\
+$\downarrow \ln$ & \\
+$X_{t}^{k}$ & log-prices \;\small[\textit{GBM}] \\
+$\downarrow \Delta$ & \\
+$\Delta X_{t_i}^{k}$ & log-returns \;\small[\textit{It\^{o}}] \\
+$\downarrow$ OLS detrend & \\
+$\widetilde{X}_{t}^{k}$ & detrended levels \;\small[\textit{OU}] \\
+$\downarrow \Delta$ & \\
+$\Delta\widetilde{X}_{t_i}^{k}$ & detrended returns \\
+\end{tabular}
+\end{column}
+\end{columns}
+
+\end{frame}
+
+% ================================================================
+\begin{frame}{Representative Stocks: Screening}
+% ================================================================
+
+\textbf{Selection criteria:}
+\begin{itemize}\setlength{\itemsep}{1pt}
+  \item High raw-trend $R^2$: log-price well-described by linear growth $\Rightarrow$ GBM relevant
+  \item High lag-1 ACF of $\widetilde{X}^k$: high persistence $\Rightarrow$ OU slow mean reversion
+  \item Large detrended amplitude: visually clear contrast
+\end{itemize}
+
+\medskip
+\begin{center}
+\small
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{lccccl}
+\toprule
+\textbf{Sym.} & Raw $R^2$ & ACF$_1$ & Detr.\ std & Zer.\ cr. & Role \\
+\midrule
+\rowcolor{lightgray}
+\textbf{NVDA} & 0.883 & 0.9916 & 0.236 & 24 & Strongest trend, large ampl. \\
+\textbf{META} & 0.822 & 0.9919 & 0.187 & 28 & Growth, max persistence \\
+\rowcolor{lightgray}
+\textbf{GOOG} & 0.866 & 0.9880 & 0.121 & 41 & Calmer, expressive \\
+\midrule
+AAPL & 0.782 & 0.9817 & 0.084 & 44 & Backup (weaker) \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\end{frame}
+
+% ================================================================
+\begin{frame}{Raw Log-Prices vs Detrended Log-Prices}
+% ================================================================
+
+\begin{center}
+  \includegraphics[width=\textwidth,height=0.70\textheight,keepaspectratio]%
+    {fig_raw_vs_detrended}
+\end{center}
+
+\smallskip\small
+\textbf{Left:} raw $X_{t_i}^k$ --- drift-dominated $\Rightarrow$ GBM benchmark.\quad
+\textbf{Right:} detrended $\widetilde{X}_{t_i}^k$ --- oscillates near zero $\Rightarrow$ OU benchmark.
+
+\end{frame}
+
+% ================================================================
+\begin{frame}{Increment Distributions: Daily Log-Returns}
+% ================================================================
+
+\begin{center}
+  \includegraphics[width=\textwidth,height=0.68\textheight,keepaspectratio]%
+    {fig_return_distributions}
+\end{center}
+
+\vspace{1pt}\small
+\textbf{Left:} raw $\Delta X_{t_i}^k$.\quad
+\textbf{Right:} detrended $\Delta\widetilde{X}_{t_i}^k$.\quad
+Detrending shifts the \emph{mean} toward zero but does not reshape the noise distribution.
+
+\end{frame}
+
+% ================================================================
+\begin{frame}{Rolling Diagnostics: Is the Diffusion Constant?}
+% ================================================================
+
+\begin{center}
+  \includegraphics[width=\textwidth,height=0.54\textheight,keepaspectratio]%
+    {fig_rolling_diagnostics}
+\end{center}
+
+\small\vspace{-2pt}
+21-day rolling mean (left) and rolling std (right) of $\Delta X_{t_i}^k$:
+\begin{itemize}\setlength{\itemsep}{0pt}
+  \item Rolling mean $\approx 0$ \checkmark\;--- drift hard to detect (consistent with It\^{o})
+  \item Rolling std is \textbf{time-varying} $\times$\;--- violates constant-$\sigma$:
+        NVDA $\times 3.7$, META $\times 6.8$, GOOG $\times 3.7$
+\end{itemize}
+
+\end{frame}
+
+% ================================================================
+\begin{frame}{OU Persistence: ACF of Detrended Levels}
+% ================================================================
+
+\begin{columns}[T]
+\begin{column}{0.58\textwidth}
+  \includegraphics[width=\textwidth,height=0.66\textheight,keepaspectratio]%
+    {fig_acf}
+\end{column}
+\begin{column}{0.39\textwidth}
+\small
+\textbf{OU theory (Ex.\ 5.7) predicts:}
+\vspace{-4pt}\[ \mathrm{corr}(\widetilde{X}_t,\widetilde{X}_{t-\ell}) = e^{-\theta\ell} \]\vspace{-4pt}
+geometric decay in lag $\ell$.
+
+\smallskip
+\textbf{What the data show:}
+\begin{itemize}\setlength{\itemsep}{1pt}
+  \item High lag-1 ACF:\\
+        NVDA: 0.9916\\
+        META: 0.9919\\
+        GOOG: 0.9880
+  \item Gradual step-by-step decay
+\end{itemize}
+
+\smallskip
+$\hat\theta\!\approx\!0.012$,\;
+$t_{1/2}\!\approx\!57$ days.
+\end{column}
+\end{columns}
+
+\end{frame}
+
+% ================================================================
+\begin{frame}{Detrended Levels and Rolling Mean}
+% ================================================================
+
+\begin{center}
+  \includegraphics[width=\textwidth,height=0.68\textheight,keepaspectratio]%
+    {fig_detrended_rolling_mean}
+\end{center}
+
+\vspace{1pt}\small
+Orange: $\widetilde{X}_{t_i}^k$.\;
+Navy: 63-day rolling mean.\;
+Dashed: zero.\;
+The rolling mean itself drifts slowly --- very slow mean reversion, not a fixed equilibrium.
+
+\end{frame}
+
+% ================================================================
+\begin{frame}{OU Parameter Estimation: AR(1) Proxy}
+% ================================================================
+
+\textbf{Bridge from continuous OU to discrete daily data:}
+\[
+dX_t = \theta(m - X_t)\,dt + \sigma\,dB_t
+\;\xrightarrow{\;\text{one step}\;}\;
+\widetilde{X}_{t+1} \approx \hat\alpha + \hat\phi\,\widetilde{X}_{t} + \varepsilon_t
+\]
+\small $\hat\phi = e^{-\hat\theta}$,\quad $\hat m = \hat\alpha/(1-\hat\phi)$,\quad $t_{1/2} = \ln 2/\hat\theta$
+
+\medskip
+\begin{center}
+\small\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{lccccc}
+\toprule
+Symbol & $\hat\phi$ & $\hat\theta$ & $t_{1/2}$ (days) & $\hat m$ & $\hat\sigma$ \\
+\midrule
+\rowcolor{lightgray}
+NVDA & 0.9878 & 0.0123 & \textbf{56.4} & 0.0337 & 0.0305 \\
+META & 0.9879 & 0.0122 & \textbf{56.8} & 0.0245 & 0.0236 \\
+\rowcolor{lightgray}
+GOOG & 0.9880 & 0.0121 & \textbf{57.4} & 0.0207 & 0.0187 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\medskip\small
+\begin{itemize}\setlength{\itemsep}{1pt}
+  \item $\hat\phi < 1$: valid slow mean reversion (not unit root)
+  \item $t_{1/2} \approx 57$ trading days $\approx$ \textbf{3 calendar months}: gentle, gradual drift
+\end{itemize}
+
+\end{frame}
+
+% ================================================================
+\begin{frame}{Simulations: Connecting Theory and Data}
+% ================================================================
+
+\begin{center}
+  \includegraphics[width=\textwidth,height=0.72\textheight,keepaspectratio]%
+    {fig_simulations}
+\end{center}
+
+\smallskip\small
+\textbf{L:} $B_t$ --- pure noise.\quad
+\textbf{C:} GBM $N_t$ --- multiplicative growth under noise.\quad
+\textbf{R:} OU $X_t$ calibrated to GOOG ($\hat\theta=0.012$, $\hat m=0.021$, $\hat\sigma=0.019$).
+
+\end{frame}
+
+% ================================================================
+\begin{frame}{Empirical GOOG vs Simulated OU Benchmark}
+% ================================================================
+
+\begin{center}
+  \includegraphics[width=\textwidth,height=0.64\textheight,keepaspectratio]%
+    {fig_empirical_vs_ou}
+\end{center}
+
+\vspace{1pt}\small
+Orange: empirical detrended GOOG $\widetilde{X}_{t_i}^k$.\;
+Navy: one simulated OU path with fitted parameters.\;
+Visual comparison, not a statistical test.
+
+\end{frame}
+
+% ================================================================
+\begin{frame}{Model Assessment Criterion}
+% ================================================================
+\begin{alertblock}{What does ``compatible'' mean?}
+An explicit criterion is needed --- visual similarity alone is not sufficient.
+\end{alertblock}
+
+\smallskip
+\textbf{Assessment workflow:}
+\begin{enumerate}\setlength{\itemsep}{2pt}
+
+  \item \textbf{Fit} using one simple statistic:
+        \begin{itemize}
+          \item One-step AR(1) on detrended levels $\;\Rightarrow\;$ $\hat\alpha,\;\hat\phi$
+        \end{itemize}
+
+  \item \textbf{Validate} against implications \textbf{not used} in the fit:
+        \begin{itemize}
+          \item ACF decay: empirical ACF at lags $2$--$20$ vs.\ predicted $\hat\phi^{\ell}$
+          \item Transition mean: $\mathbb{E}[\widetilde{X}_{t+h}\mid\widetilde{X}_t]$ at $h=5$
+                vs.\ model prediction $\hat m + \hat\phi^h(\widetilde{X}_t - \hat m)$
+        \end{itemize}
+
+  \item \textbf{Report the known failure:}
+        time-varying volatility (rolling-vol ratio $> 3\times$) lies outside the model.
+\end{enumerate}
+
+\end{frame}
+
+% ================================================================
+\begin{frame}{Model Assessment: Quantitative Summary}
+% ================================================================
+
+\begin{center}
+\small\renewcommand{\arraystretch}{1.1}
+\begin{tabular}{l|cc|c|cc|c}
+\toprule
+ & \multicolumn{2}{c|}{\textit{Fit}} & &
+   \multicolumn{2}{c|}{\textit{Validation}} & \textit{Failure} \\
+Sym. & Raw $R^2$ & OU $R^2$ & $t_{1/2}$ & ACF RMSE & Trans.\ RMSE & Vol.\ ratio \\
+\midrule
+\rowcolor{lightgray}
+NVDA & 0.883 & 0.983 & 56.4\,d & 0.049 & 0.0055 & $4.1\times$ \\
+META & 0.822 & 0.984 & 56.8\,d & 0.038 & 0.0052 & $6.8\times$ \\
+\rowcolor{lightgray}
+GOOG & 0.866 & 0.976 & 57.4\,d & \textbf{0.007} & 0.0069 & $3.7\times$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\smallskip\small
+\begin{itemize}\setlength{\itemsep}{0pt}
+  \item \textbf{Raw $R^2$ high} --- GBM benchmark applies to log-prices.
+  \item \textbf{OU $R^2 \approx 0.98$} --- one-step AR(1) fit is very tight.
+  \item \textbf{ACF RMSE small} (GOOG: 0.007) --- $\hat\phi^\ell$ tracks empirical decay. \textbf{Validation 1 passes.}
+  \item \textbf{Trans.\ RMSE $\approx 0.005$--$0.007$} --- conditional mean accurate. \textbf{Validation 2 passes.}
+  \item \textbf{Vol.\ ratio $> 3\times$} --- constant-$\sigma$ SDE fails here (expected).
+\end{itemize}
+
+\end{frame}
+
+% ================================================================
+\begin{frame}{Main Findings}
+% ================================================================
+
+\textbf{The answer is qualified, not absolute:}
+
+\medskip
+\begin{enumerate}\setlength{\itemsep}{8pt}
+
+  \item \textbf{GBM $\Rightarrow$ raw log-prices} ($R^2\approx 0.82$--$0.88$)\\
+        \small Raw log-prices are trend-dominated; multiplicative-growth benchmark applies.
+
+  \item \textbf{OU $\Rightarrow$ detrended log-prices} (lag-1 ACF $\approx 0.988$--$0.992$)\\
+        \small Half-life $t_{1/2}\approx 57$ days ($\approx 3$ months).
+        ACF-decay and conditional-mean validations both pass.
+
+  \item \textbf{It\^{o} diffusion $\Rightarrow$ increments, but $\sigma$ is not constant}\\
+        \small Rolling-vol ratio $>3$--$7\times$: volatility clustering is outside the model.
+
+\end{enumerate}
+
+\medskip\small
+No single low-dimensional SDE simultaneously explains all features.
+
+\end{frame}
+
+% ================================================================
+\begin{frame}{Limitations and Natural Extensions}
+% ================================================================
+
+\begin{columns}[T]
+\begin{column}{0.47\textwidth}
+\textbf{Current limitations}
+\begin{enumerate}\setlength{\itemsep}{3pt}\small
+  \item Educational diagnostic, not formal likelihood comparison
+  \item Simple linear detrending (not adaptive, not factor-based)
+  \item Daily data only
+  \item Constant-$\sigma$ misses \emph{volatility clustering}
+  \item Transition-mean check is simplified; not a full Markov transition-kernel test
+\end{enumerate}
+\end{column}
+\begin{column}{0.50\textwidth}
+\textbf{Natural next steps}
+\begin{enumerate}\setlength{\itemsep}{3pt}\small
+  \item Realized quadratic variation: directly measures $\langle X\rangle_t$
+  \item PCA market-factor extraction; OU on detrended factor
+  \item Stochastic-volatility extension ($\sigma_t$ follows a diffusion)
+  \item Jump-diffusion models for large overnight moves
+  \item Fokker--Planck and full transition-kernel analysis
+  \item MLE-based parameter estimation and formal model comparison
+\end{enumerate}
+\end{column}
+\end{columns}
+
+\end{frame}
+
+% ================================================================
+\begin{frame}{Conclusion}
+% ================================================================
+\begin{block}{Answer}
+Stock-market time series \textbf{can} be described by SDEs to a meaningful extent,
+but the description is \emph{approximate} and depends on which object is modeled.
+\end{block}
+
+\smallskip
+\begin{itemize}\setlength{\itemsep}{2pt}
+  \item Raw $X_t^k$ (log-prices) $\;\to\;$ \textbf{GBM} is the appropriate benchmark.
+  \item Detrended $\widetilde{X}_t^k$ $\;\to\;$ \textbf{OU} with $t_{1/2}\approx 57\,\text{d}$.
+  \item Increments $\Delta X_{t_i}^k$ $\;\to\;$ \textbf{It\^{o} diffusion} language is natural,
+        but $\sigma$ is time-varying.
+\end{itemize}
+
+\smallskip
+\begin{alertblock}{Methodological lesson}
+``Compatible'' = fit by one set of statistics, validate by others.
+\end{alertblock}
+
+\smallskip\centering\small
+Data: NASDAQ daily prices, Jan 2023 -- Apr 2026, 94 stocks.
+\quad Theory: {\O}ksendal, \textit{SDE}, 6th ed.
+
+\end{frame}
+
+% ================================================================
+\end{document}
+% ================================================================

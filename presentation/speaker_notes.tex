@@ -1,0 +1,413 @@
+\documentclass[12pt,a4paper]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{amsmath,amssymb}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{parskip}
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage{xcolor}
+
+\definecolor{slidegray}{RGB}{80,80,80}
+
+\titleformat{\section}{\large\bfseries}{}{0em}{}[\vspace{-4pt}\rule{\linewidth}{0.4pt}]
+\titlespacing{\section}{0pt}{16pt}{6pt}
+
+\setlist[itemize]{itemsep=3pt,topsep=4pt}
+
+\begin{document}
+
+\begin{center}
+  {\LARGE\bfseries Speaker Script}\\[6pt]
+  {\large Can Simple SDEs Describe Equity-Market Time Series?}\\[4pt]
+  {\color{slidegray} Dmitri Bolt\quad---\quad May 2026}
+\end{center}
+
+\bigskip
+
+% ================================================================
+\section{Slide 1. Title}
+% ================================================================
+
+This is an educational mini-research project.
+My goal is not to build a production trading model.
+I use textbook stochastic differential equation benchmarks from Øksendal
+as a mathematical language and ask: which of these benchmarks describes
+which transformation of real stock-price data, and in what sense?
+
+% ================================================================
+\section{Slide 2. Research Question and Financial Setup}
+% ================================================================
+
+I want to make sure the financial setup is clear, since we will be working
+with real data.
+
+A \textbf{stock} is a tradeable financial instrument --- a share of ownership
+in a company.
+Its \textbf{closing price} ($P_t^k$) is the last traded price at the end of each business day.
+The market is open approximately \textbf{252 days per year} ---
+weekends and holidays are excluded.
+
+The key methodological point is that the same price series gives rise to five
+structurally different empirical objects.
+A model may be useful for one transformation and weak for another.
+This is the organizing principle of the whole research.
+
+% ================================================================
+\section{Slide 3. Three Textbook Benchmarks}
+% ================================================================
+
+All three benchmarks come directly from Øksendal.
+
+The \textbf{Itô diffusion} (Definition 4.1.1, equation 4.1.6) is the most general.
+It says: the process changes by a deterministic drift term and a random diffusion term.
+For daily log-returns, this is the natural language:
+each day's return is a small noisy step.
+
+The \textbf{geometric Brownian motion}
+($\text{GBM}$, Chapter 5.1, equation 5.1.5)
+specializes the drift to be proportional to the current level,
+giving multiplicative growth.
+In finance, N-sub-t ($N_t$) is the price level of a stock or a portfolio.
+The solution is an exponential with a Brownian component ---
+the standard picture of a random walk with drift for prices.
+
+The \textbf{Ornstein--Uhlenbeck process}
+($\text{OU}$, Exercise 5.7)
+introduces mean reversion:
+if the process drifts above its long-run level m,
+the drift term ($\theta(m - X_t)$) pulls it back.
+Here theta ($\theta$) is the mean-reversion speed.
+This is exactly the behavior we expect from a detrended series
+that oscillates around a long-run mean.
+
+% ================================================================
+\section{Slide 4. Data and Pipeline}
+% ================================================================
+
+We have 94 stocks, daily observations,
+approximately 820 data points per stock.
+The three representative stocks ---
+NVDA (Nvidia), META (Meta Platforms), GOOG (Alphabet/Google) ---
+are large US technology companies selected by explicit screening metrics
+shown on the next slide.
+
+The \textbf{detrending step} is the key operation:
+we fit a simple ordinary least squares linear trend ($\text{OLS}$)
+to each log-price series and keep the residual.
+This residual ($\widetilde{X}_t^k$) ---
+is the object we test against the Ornstein--Uhlenbeck benchmark.
+Without detrending, stock prices drift upward over time
+and the Ornstein--Uhlenbeck benchmark would clearly not apply.
+
+% ================================================================
+\section{Slide 5. Representative Stocks: Screening}
+% ================================================================
+
+I chose three stocks based on three criteria.
+
+\textbf{Raw trend R-squared} ($R^2$):
+how well does a linear trend explain the raw log-price?
+A high value means the series is drift-dominated ---
+good for the geometric Brownian motion benchmark.
+
+\textbf{Lag-one autocorrelation function value}
+($\text{ACF}$ at lag 1) of the detrended level:
+how persistent is X-tilde ($\widetilde{X}_t^k$)?
+A high value means slow mean reversion ---
+good for the Ornstein--Uhlenbeck benchmark.
+
+\textbf{Detrended standard deviation} ($\sigma$):
+the amplitude of the detrended oscillations ---
+larger means the visual picture is clearer.
+
+NVDA has the strongest trend and largest amplitude.
+META has the highest persistence of detrended levels.
+GOOG is calmer but still well-expressed.
+AAPL is weaker on all metrics and serves as a backup.
+
+% ================================================================
+\section{Slide 6. Raw Log-Prices vs Detrended Log-Prices}
+% ================================================================
+
+This is the core visual of the research.
+
+The \textbf{left panels} show raw log-prices:
+they grow over time, sometimes steeply,
+and look exactly like geometric Brownian motion paths ---
+drift-dominated with additive noise on top.
+
+The \textbf{right panels} show the detrended residuals.
+After removing the linear trend, the series oscillates around zero.
+This is visually much more compatible with an Ornstein--Uhlenbeck benchmark.
+
+The key insight: the same data yields both pictures depending on the transformation.
+
+% ================================================================
+\section{Slide 7. Increment Distributions: Log-Returns}
+% ================================================================
+
+The \textbf{log-return} ($\Delta X_{t_i}^k = \ln P_{t_i}^k - \ln P_{t_{i-1}}^k$) ---
+is the standard measure of daily price change in finance.
+It is symmetric and approximately scale-free:
+a doubling of the price gives the same return regardless of the starting level.
+
+The histograms show that detrending shifts the distribution center slightly toward zero
+but does not reshape the noise.
+The shape of the noise is the diffusion component;
+the mean shift is the drift component.
+The Itô diffusion language handles both.
+
+% ================================================================
+\section{Slide 8. Rolling Diagnostics: Is the Diffusion Constant?}
+% ================================================================
+
+The Itô benchmark (equation 4.1.6) with constant drift u and constant diffusion
+coefficient v predicts that daily returns have constant mean and
+constant standard deviation ($\sigma$) over time.
+
+The 21-day rolling mean (left panel) stays small and fluctuates near zero ---
+so the drift is hard to detect in daily data, which is consistent with noisy diffusion.
+
+The 21-day rolling standard deviation (right panel) clearly changes over time:
+\begin{itemize}
+  \item NVDA: the ratio of maximum to minimum rolling volatility
+        is approximately 3.7 times.
+  \item META: the ratio is approximately 6.8 times.
+  \item GOOG: the ratio is approximately 3.1 times.
+\end{itemize}
+
+This is a well-known empirical fact in finance called
+\textbf{volatility clustering} ---
+the market alternates between calm and turbulent regimes.
+A constant-coefficient stochastic differential equation cannot capture this.
+It remains a useful benchmark but has a known, quantifiable limitation.
+
+% ================================================================
+\section{Slide 9. OU Persistence: ACF of Detrended Levels}
+% ================================================================
+
+Ornstein--Uhlenbeck theory (Exercise 5.7) predicts that
+the autocorrelation of the detrended series ($\widetilde{X}_t$) decays as ($e^{-\theta\ell}$),
+where the mean-reversion speed is ($\theta$)
+and the lag is ($\ell$).
+
+The empirical autocorrelation function plots show exactly this pattern:
+high positive lag-one values ---
+0.9916 for NVDA, 0.9919 for META, 0.9880 for GOOG ---
+that decay gradually rather than collapsing to zero immediately.
+
+This does not prove an exact Ornstein--Uhlenbeck law.
+But it is the empirical signature that motivates the Ornstein--Uhlenbeck approximation.
+The slow geometric decay is consistent with theta-hat ($\hat\theta$) approximately 0.012,
+corresponding to a half-life of about 57 trading days.
+
+% ================================================================
+\section{Slide 10. Detrended Levels and Rolling Mean}
+% ================================================================
+
+This slide shows the slow, undulating nature of the mean reversion.
+
+The 63-day rolling mean (navy line) shows that the local long-run level of
+X-tilde ($\widetilde{X}_t^k$) itself moves slowly over time.
+This is consistent with very slow mean reversion:
+the process does not snap back to a fixed equilibrium;
+it drifts gently toward a slowly evolving local mean.
+
+% ================================================================
+\section{Slide 11. OU Parameter Estimation: AR(1) Proxy}
+% ================================================================
+
+The bridge between the continuous Ornstein--Uhlenbeck stochastic differential equation
+and discrete daily data is the autoregressive model of order one (AR(1)) proxy.
+
+If the process satisfies the Ornstein--Uhlenbeck equation, then the exact
+discrete-time solution over one day is:
+($\widetilde{X}_{t+1} = m(1-e^{-\theta}) + e^{-\theta}\widetilde{X}_t + \varepsilon_t$).
+
+We estimate this as ($\hat\alpha + \hat\phi\,\widetilde{X}_t$).
+From the fitted phi-hat ($\hat\phi$)
+we recover theta-hat ($\hat\theta$) as minus the logarithm of phi-hat
+($\hat\theta = -\ln\hat\phi$).
+
+The \textbf{half-life} ($t_{1/2} = \ln 2\,/\,\hat\theta$)
+is how long it takes for the deviation from the mean to halve.
+For all three stocks the half-life is approximately 57 trading days ---
+which is approximately \textbf{three calendar months}.
+This is very slow mean reversion:
+not a tight bounce, but a gentle multi-month drift back toward the long-run level.
+
+% ================================================================
+\section{Slide 12. Simulations: Connecting Theory and Data}
+% ================================================================
+
+This slide closes the loop between the theoretical benchmarks and the empirical data.
+
+\textbf{Left:} pure Brownian motion --- symmetric random walk,
+no drift, no mean reversion.
+
+\textbf{Center:} geometric Brownian motion (GBM) ---
+the same Brownian noise multiplied by the current level,
+giving exponential growth under random perturbations.
+This is the visual model for raw stock prices.
+
+\textbf{Right:} Ornstein--Uhlenbeck process calibrated to GOOG ---
+theta-hat equals 0.0121 ($\hat\theta = 0.0121$),
+m-hat equals 0.0207 ($\hat m = 0.0207$),
+sigma-hat equals 0.0187 ($\hat\sigma = 0.0187$).
+Notice how the paths oscillate around the dashed long-run mean
+without diverging to infinity.
+The reversion is slow and gentle --- consistent with the half-life of 57 days.
+
+% ================================================================
+\section{Slide 13. Empirical GOOG vs Simulated OU Benchmark}
+% ================================================================
+
+This is a direct visual comparison.
+
+The orange line is the actual detrended GOOG log-price
+($\widetilde{X}_{t_i}^k$) from 2023 to 2026.
+The navy line is one Ornstein--Uhlenbeck simulation
+with the parameters estimated from GOOG.
+
+The paths are not identical --- they are two different realizations of processes
+with similar statistical properties.
+The comparison is illustrative and educational, not a statistical test.
+But the visual similarity supports the Ornstein--Uhlenbeck interpretation.
+
+% ================================================================
+\section{Slide 14. Model Assessment Criterion}
+% ================================================================
+
+This slide directly addresses Professor Fatkullin's methodological comment.
+
+The question was: what does ``compatible'' mean?
+You cannot just draw two pictures that look similar and say the model fits.
+You need an explicit criterion.
+
+The approach used here has three parts.
+
+\textbf{First:} fit parameters using one simple statistic ---
+the one-step autoregressive model of order one (AR(1)) regression on detrended levels,
+giving alpha-hat ($\hat\alpha$) and phi-hat ($\hat\phi$).
+
+\textbf{Second:} check other implications of the fitted model
+that were \emph{not used} in the fitting:
+\begin{itemize}
+  \item Validation one: does the theoretical decay ($\hat\phi^\ell$)
+        match the empirical autocorrelation function at lags 2 through 20?
+  \item Validation two: does the model's conditional mean ---
+        ($\hat m + \hat\phi^h(\widetilde{X}_t - \hat m)$) ---
+        predict the empirical conditional mean at h equals 5 days?
+\end{itemize}
+
+\textbf{Third:} report the visible failure ---
+time-varying volatility.
+
+This is not a full transition-kernel test, as the professor also suggested.
+But it is a systematic diagnostic that gives explicit meaning
+to the word ``compatible.''
+
+% ================================================================
+\section{Slide 15. Model Assessment: Quantitative Table}
+% ================================================================
+
+The table shows all metrics together.
+
+\textbf{Raw R-squared} ($R^2$) is high for all three stocks:
+0.883 for NVDA, 0.822 for META, 0.866 for GOOG.
+The geometric Brownian motion benchmark applies to raw log-price levels.
+
+\textbf{Ornstein--Uhlenbeck autoregressive R-squared} is approximately 0.98
+for all three stocks: the one-step fit is very tight.
+
+\textbf{Autocorrelation function root mean squared error} (ACF RMSE)
+is small, especially for GOOG at 0.007:
+the theoretical decay curve ($\hat\phi^\ell$) closely tracks
+the empirical autocorrelation function.
+For NVDA the deviation is larger at 0.049 ---
+the series is less cleanly Ornstein--Uhlenbeck-like.
+
+\textbf{Transition root mean squared error} (RMSE)
+is approximately 0.005 to 0.007:
+the conditional-mean prediction is accurate.
+
+\textbf{Rolling volatility ratio} is greater than 3 to 7 times for all stocks:
+this is where the constant-sigma stochastic differential equation clearly fails.
+META shows the worst ratio at 6.8 times ---
+it had a particularly turbulent period during 2023.
+
+% ================================================================
+\section{Slide 16. Main Findings}
+% ================================================================
+
+The answer is qualified, not absolute.
+
+\textbf{Geometric Brownian motion (GBM)} is appropriate for raw log-prices ---
+these are trend-dominated, growing over time,
+and the multiplicative-noise picture matches well.
+
+\textbf{Ornstein--Uhlenbeck (OU)} is appropriate for detrended log-prices ---
+these show persistent, slowly decaying autocorrelation
+with a half-life of about three months,
+and both autocorrelation-decay and conditional-mean validation pass.
+
+\textbf{Constant-sigma diffusion} is useful but limited ---
+the Itô language describes daily increments naturally,
+but volatility is clearly time-varying.
+
+No single low-dimensional stochastic differential equation
+captures all features simultaneously.
+
+% ================================================================
+\section{Slide 17. Limitations and Natural Extensions}
+% ================================================================
+
+The main limitations are as follows.
+
+Linear detrending may not be the right way to remove the trend;
+factor-based detrending could give different results.
+
+The transition-mean check is a simplified diagnostic,
+not the full transition-kernel analysis that Professor Fatkullin mentioned.
+
+Constant-volatility stochastic differential equation
+misses volatility clustering entirely.
+
+The most natural next step mathematically is
+\textbf{realized quadratic variation}:
+for a diffusion with drift u and diffusion coefficient v,
+the quadratic variation ($\langle X\rangle_t$) ---
+converges to ($\int_0^t v^2\,ds$).
+In practice, summing squared daily returns gives a direct empirical estimate
+of the integrated variance.
+This would be a more rigorous diffusion diagnostic than rolling volatility.
+
+Another natural direction is the \textbf{Fokker--Planck equation}
+for the Ornstein--Uhlenbeck process,
+which gives the evolution of the probability density ---
+that would allow a more formal transition-kernel analysis
+as suggested by the professor.
+
+% ================================================================
+\section{Slide 18. Conclusion}
+% ================================================================
+
+The conclusion is deliberately qualified, not absolute.
+
+The research question was: can simple stochastic differential equations
+describe equity-market time series?
+The answer is: yes, to a meaningful extent,
+but only approximately and only for the right transformations of the data.
+
+The methodological lesson is that ``compatible'' is not a visual judgment.
+You fit by some statistics and validate by others.
+
+This is an educational mini-research, and I think the value is precisely in making
+the connection between Øksendal's theoretical framework and real market data explicit ---
+showing which formulas apply where, and what their limitations are.
+
+\end{document}
